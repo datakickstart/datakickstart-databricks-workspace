@@ -8,7 +8,6 @@ db_password = dbutils.secrets.get("demo", "sql-pwd-stackoverflow") #databricks
 
 # COMMAND ----------
 
-table_list = ["Badges", "Comments", "LinkTypes", "PostLinks", "Posts", "PostTypes", "Users", "Votes", "VoteTypes"]
 spark.sql(f"CREATE DATABASE IF NOT EXISTS raw_stackoverflow LOCATION '/demo/raw_stackoverflow'")
 
 def load_table(table):
@@ -34,6 +33,33 @@ def load_table(table):
 ## Uncomment to run
 # for table in table_list:
 #   load_table(table)
+
+# COMMAND ----------
+
+def get_table_list(get_tables_sql):
+    tables_df = (
+        spark.read
+        .format("com.microsoft.sqlserver.jdbc.spark")
+        .option("url", db_url)
+        .option("query", get_tables_sql)
+        .option("user", db_user)
+        .option("password", db_password)
+        .load()
+    )
+    return [row.table_name for row in tables_df.collect()]
+
+
+get_tables_sql = "Select table_name from INFORMATION_SCHEMA.TABLES where table_schema='dbo' and table_type='BASE TABLE'"
+try:
+    table_list = get_table_list(get_tables_sql)
+except:
+    time.sleep(10)
+    table_list = get_table_list(get_tables_sql)
+
+## Uncommment to override table list
+#table_list = ["Badges", "Comments", "LinkTypes", "PostLinks", "Posts", "PostTypes", "Users", "Votes", "VoteTypes"]
+    
+print(table_list)
 
 # COMMAND ----------
 
