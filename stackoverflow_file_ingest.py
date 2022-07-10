@@ -26,9 +26,10 @@
 # COMMAND ----------
 
 import requests
-
-url = 'https://archive.org/download/stackexchange/stackoverflow.com-Posts.7z'
-local_filename =  '/dbfs/tmp/posts.7z'
+#file = # 'Users', 'Posts', 'Tags', 'Votes'
+file = 'Votes'
+url = f'https://archive.org/download/stackexchange/stackoverflow.com-{file}.7z'
+local_filename =  f'/dbfs/tmp/{file}.7z'
 with requests.get(url, stream=True) as r:
     r.raise_for_status()
     with open(local_filename, 'wb') as f:
@@ -39,8 +40,14 @@ with requests.get(url, stream=True) as r:
 # COMMAND ----------
 
 import py7zr
-with py7zr.SevenZipFile('/dbfs/tmp/posts.7z', mode='r') as z:
+
+# Took 2.10 hours on single node for posts
+with py7zr.SevenZipFile(f'/dbfs/tmp/{file}.7z', mode='r') as z:
     z.extractall(path='/dbfs/tmp')
+
+# COMMAND ----------
+
+# MAGIC %sh ls -l /dbfs/tmp/
 
 # COMMAND ----------
 
