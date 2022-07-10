@@ -8,8 +8,12 @@ df.count()
 
 // COMMAND ----------
 
-df.createOrReplaceTempView(s"stackoverflow_{table}")
+df.createOrReplaceTempView(s"stackoverflow_${table}")
 df.show()
+
+// COMMAND ----------
+
+df.write.format("parquet").mode("overwrite").save(s"dbfs:/tmp/stackoverflow/${table}")
 
 // COMMAND ----------
 
