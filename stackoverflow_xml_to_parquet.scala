@@ -1,8 +1,8 @@
 // Databricks notebook source
 // import com.databricks.spark.
-val file = "Posts" // "users"
+val file = "" //"Tags" //"Posts" // "users"
 val table = file.toLowerCase()
-val df = spark.read.format("xml").option("samplingRatio", 0.01).option("rootTag", table).option("rowTag", "row").option("inferSchema", "true").load(s"dbfs:/tmp/${file}.xml")
+val df = spark.read.format("xml").option("samplingRatio", 0.001).option("rootTag", table).option("rowTag", "row").option("inferSchema", "true").load(s"dbfs:/tmp/${file}.xml")
 df.cache()
 df.count()
 
@@ -13,26 +13,19 @@ df.show()
 
 // COMMAND ----------
 
-df.write.format("parquet").mode("overwrite").save(s"dbfs:/tmp/stackoverflow/${table}")
+// df.write.format("parquet").mode("overwrite").save(s"dbfs:/tmp/stackoverflow/${table}")
 
 // COMMAND ----------
 
-// import org.apache.spark.sql.functions._
-// val df2 = df.withColumn("tags_split", regexp_extract_all("_DisplayName", "<[A-za-z]*>"))
+if (table == "posts") {
+  val df_enriched = spark.sql(
+  """Select *, regexp_extract_all(_Tags, '(<[^<>]*>)',0) as TagsArray, date_format(_CreationDate, "yyyy-MM-01") as CreationMonth, date_format(_LastEditDate, "yyyy-MM-01") as LastEditMonth, date_format(_LastActivityDate, "yyyy-MM-01") as LastActivityMonth
+  from stackoverflow_posts""")
 
-// COMMAND ----------
-
-// MAGIC %sql
-// MAGIC Select _DisplayName, regexp_extract_all(_DisplayName, '(.i)',1)
-// MAGIC from stackoverflow_users
-// MAGIC where _DisplayName = 'Twilio'
-
-// COMMAND ----------
-
-// MAGIC %sql
-// MAGIC Select tags, regexp_extract_all(tags, '(<[A-za-z]>)',0)
-// MAGIC from stackoverflow_posts
-// MAGIC limit 100
+  df_enriched.write.partitionBy("CreationMonth").format("parquet").mode("overwrite").save(s"dbfs:/tmp/stackoverflow/${table}")
+} else {
+  df.write.format("parquet").mode("overwrite").save(s"dbfs:/tmp/stackoverflow/${table}")
+}
 
 // COMMAND ----------
 
