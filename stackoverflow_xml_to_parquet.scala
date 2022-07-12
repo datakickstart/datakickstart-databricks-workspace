@@ -1,6 +1,6 @@
 // Databricks notebook source
 // import com.databricks.spark.
-val file = "" //"Tags" //"Posts" // "users"
+val file = "Badges" // "Tags", "Posts", "Users", "Votes", "Comments", "Badges"
 val table = file.toLowerCase()
 val df = spark.read.format("xml").option("samplingRatio", 0.001).option("rootTag", table).option("rowTag", "row").option("inferSchema", "true").load(s"dbfs:/tmp/${file}.xml")
 df.cache()
@@ -26,6 +26,10 @@ if (table == "posts") {
 } else {
   df.write.format("parquet").mode("overwrite").save(s"dbfs:/tmp/stackoverflow/${table}")
 }
+
+// COMMAND ----------
+
+// MAGIC %fs ls dbfs:/tmp/stackoverflow/
 
 // COMMAND ----------
 

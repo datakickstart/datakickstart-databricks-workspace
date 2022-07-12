@@ -26,8 +26,8 @@
 # COMMAND ----------
 
 import requests
-#file = # 'Users', 'Posts', 'Tags', 'Votes'
-file = 'Votes'
+#file = # 'Users', 'Posts', 'Tags', 'Votes', 'Comments', 'Badges', 'PostLinks'
+file = 'PostLinks'
 url = f'https://archive.org/download/stackexchange/stackoverflow.com-{file}.7z'
 local_filename =  f'/dbfs/tmp/{file}.7z'
 with requests.get(url, stream=True) as r:
