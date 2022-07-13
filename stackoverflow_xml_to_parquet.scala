@@ -1,6 +1,6 @@
 // Databricks notebook source
 // import com.databricks.spark.
-val file = "Badges" // "Tags", "Posts", "Users", "Votes", "Comments", "Badges"
+val file = "" // "Tags", "Posts", "Users", "Votes", "Comments", "Badges", "PostLinks"
 val table = file.toLowerCase()
 val df = spark.read.format("xml").option("samplingRatio", 0.001).option("rootTag", table).option("rowTag", "row").option("inferSchema", "true").load(s"dbfs:/tmp/${file}.xml")
 df.cache()
@@ -35,3 +35,7 @@ if (table == "posts") {
 
 // val df_text = spark.read.text("dbfs:/tmp/Users.xml").limit(1)
 // df_text.show(truncate=false)
+
+// COMMAND ----------
+
+// MAGIC %fs ls /dbfs/mnt
