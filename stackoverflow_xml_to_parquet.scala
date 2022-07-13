@@ -38,4 +38,8 @@ if (table == "posts") {
 
 // COMMAND ----------
 
-// MAGIC %fs ls /dbfs/mnt
+// MAGIC %fs ls 
+
+// COMMAND ----------
+
+// MAGIC %fs cp -r dbfs:/tmp/stackoverflow dbfs:/mnt/datalake/raw/stackoverflow/
