@@ -63,3 +63,18 @@ adls_mount(account_name="datakickstartadls", container="refined", mnt_pnt="/mnt/
 # COMMAND ----------
 
 adls_mount(account_name="datakickstartadls", container="curated", mnt_pnt="/mnt/datalake/curated")
+
+# COMMAND ----------
+
+# MAGIC %sh rm -r /dbfs/tmp/stackoverflow/posts/_Post*
+
+# COMMAND ----------
+
+# MAGIC %sh du -h /dbfs/mnt/datalake/raw/stackoverflow/
+
+# COMMAND ----------
+
+from datetime import datetime
+
+t = datetime.fromtimestamp(1657812704)
+print(t)
