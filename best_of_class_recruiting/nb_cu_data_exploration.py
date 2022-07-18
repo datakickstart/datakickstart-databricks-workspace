@@ -76,7 +76,10 @@ display(base_df)
 
 # MAGIC %md
 # MAGIC ## Current
-# MAGIC 1. Business key = 
+# MAGIC 1. Business key = series_id, year, period
+# MAGIC 2. footnote_codes all NaN
+# MAGIC 3. year (bigint): min 1997, max 2022
+# MAGIC 4. value is double, no nulls, min 1.27, max 3196.23
 
 # COMMAND ----------
 
