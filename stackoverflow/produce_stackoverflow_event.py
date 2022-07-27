@@ -29,7 +29,7 @@ options = {
 
 min_dt = None
 
-for i in range(100):
+for i in range(20):
     if min_dt:
         df = so_posts.where(col("_CreationDate")< min_dt).limit(10)
     else:
