@@ -8,6 +8,7 @@ def start_logging(job_name):
     global job_start_time
     job_start_time = time.perf_counter()
     
+    sc = spark.sparkContext
     spark_log4j = sc._jvm.org.apache.log4j
     global logger 
     logger = spark_log4j.LogManager.getLogger("pyspark_logger")
