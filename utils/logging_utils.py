@@ -13,6 +13,7 @@ def start_logging(spark, job_name):
     logger = spark_log4j.LogManager.getLogger("pyspark_logger")
     
     logger.info(f"Starting logger for {job_name}")
+    return logger
 
     
 def log_debug_message(message):
