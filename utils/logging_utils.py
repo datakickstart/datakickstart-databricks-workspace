@@ -5,10 +5,12 @@ job_start_time = None
 
 
 def start_logging(job_name):
-    global job_start_time = time.perf_counter()
+    global job_start_time
+    job_start_time = time.perf_counter()
     
     spark_log4j = sc._jvm.org.apache.log4j
-    global logger = spark_log4j.LogManager.getLogger("pyspark_logger")
+    global logger 
+    logger = spark_log4j.LogManager.getLogger("pyspark_logger")
     
     logger.info(f"Starting logger for {job_name}")
 
