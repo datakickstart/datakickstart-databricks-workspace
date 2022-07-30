@@ -4,7 +4,7 @@ logger = None
 job_start_time = None
 
 
-def start_logging(job_name):
+def start_logging(spark, job_name):
     global job_start_time
     job_start_time = time.perf_counter()
     
