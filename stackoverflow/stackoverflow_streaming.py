@@ -9,7 +9,7 @@ job_name = 'stackoverflow_streaming'
 logger = start_logging(spark, job_name)
 
 topic = "stackoverflow_post"
-
+GROUP_ID = "so_v1"
 
 def get_event_hub_config(topic):
     # Password is really a Event Hub connection string, for example ->
@@ -98,7 +98,15 @@ old_users = spark.read.parquet("dbfs:/mnt/datakickstart/raw/stackoverflow/users"
 all_users = old_users.union(new_users)
 
 df_combined = df_post.join(all_users, df_post["owner.user_id"] == all_users["user_id"], how="left")
-display(df)
+
+checkpoint_path = f"dbfs:/mnt/datakickstart/raw/checkpoints/stackoverflow_streaming_{GROUP_ID}"
+save_to_path = f"dbfs:/mnt/datakickstart/raw/stack_overflow_streaming/posts_{GROUP_ID}"
+
+df.write.mode('append').format("delta").checkpoint()
+
+# COMMAND ----------
+
+# MAGIC %fs ls dbfs:/mnt/datakickstart/raw/
 
 # COMMAND ----------
 
