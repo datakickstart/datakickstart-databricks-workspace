@@ -26,9 +26,16 @@ source_db = 'raw_stackoverflow'
 table_list = get_tables(source_path)
 
 for (path, t) in table_list:
+  try:
     df = spark.read.parquet(path)
     if t in partitioned_tables:
-        # save_delta_table(df, "raw_stackoverflow." + t + "_delta", partitioned_tables[t])
+        save_delta_table(df, "raw_stackoverflow." + t + "_delta", partitioned_tables[t])
         print(t) #temporary
     else:
         save_delta_table(df, "raw_stackoverflow." + t + "_delta")
+  except Exception as e:
+    print(f"Error for table {t}: {str(e)}")
+
+# COMMAND ----------
+
+

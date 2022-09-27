@@ -1,7 +1,7 @@
 # Databricks notebook source
 from pyspark.sql.functions import col
 
-so_posts = spark.read.parquet("dbfs:/mnt/datalake/raw/stackoverflow/posts/CreationMonth=2022-06-01")
+so_posts = spark.read.parquet("dbfs:/mnt/dvtraining/demo/stackoverflow/posts/CreationMonth=2022-06-01")
 
 # COMMAND ----------
 
@@ -50,6 +50,9 @@ def get_event_hub_config(topic):
 
 # COMMAND ----------
 
+topic = 'stackoverflow-post'
+config = get_event_hub_config(topic)
+
 min_dt = None
 
 for i in range(20):
@@ -58,7 +61,7 @@ for i in range(20):
     else:
         df = so_posts.limit(10)
     min_dt = df.selectExpr("min(_CreationDate) as minCreationDate").first().minCreationDate
-    df.selectExpr("cast(_Id as String) as key", "to_json(struct(*)) as value").write.format("kafka").options(**options).save()
+    df.selectExpr("cast(_Id as String) as key", "to_json(struct(*)) as value").write.format("kafka").options(**config).save()
 
 
 # COMMAND ----------

@@ -66,7 +66,7 @@ display(question_df)
 # COMMAND ----------
 
 # Build unique set of users
-question_rows = df.collect()
+question_rows = question_df.collect()
 user_ids = set()
 for row in question_rows:
     user_ids.add(str(row['owner']['user_id']))

@@ -8,7 +8,7 @@ from utils.logging_utils import *
 job_name = 'stackoverflow_streaming'
 logger = start_logging(spark, job_name)
 
-topic = "stackoverflow_post"
+topic = "stackoverflow-post"
 GROUP_ID = "so_v1"
 
 def get_event_hub_config(topic):
@@ -50,8 +50,6 @@ post_schema = (
     .add('_LastEditorUserId','long')
     .add('_OwnerDisplayName','string')
     .add('_OwnerUserId','long')
-    .add('_ParentId','long')
-    .add('_PostTypeId','long')
     .add('_AcceptedAnswerId','long')
     .add('_AnswerCount','long')
     .add('_Body','string')
@@ -88,26 +86,42 @@ df_parsed = post_transformed_df.select(
     col('value').cast('string').alias("value_str"),
     fn.from_json(col('value').cast('string'), post_schema).alias("json"))
 
-df_post = df_parsed.selectExpr("json.*")\
+df_post = df_parsed.selectExpr("json.*")
 
 
 # COMMAND ----------
 
-new_users = spark.read.delta("dbfs:/mnt/datakickstart/refined/stackoverflow_new_users").load()
-old_users = spark.read.parquet("dbfs:/mnt/datakickstart/raw/stackoverflow/users").load()
+new_users = spark.read.format("delta").load("dbfs:/mnt/datakickstart/refined/stackoverflow_new_users").select(
+    "user_id",
+    "account_id",
+    "display_name",
+    "website_url"
+)
+
+old_users = spark.read.parquet("dbfs:/mnt/datalake/raw/stackoverflow/users").selectExpr(
+    "_ID as user_id",
+    "_AccountId as account_id",
+    "_DisplayName as display_name",
+    "_WebsiteUrl as website_url"
+    )
+
 all_users = old_users.union(new_users)
 
-df_combined = df_post.join(all_users, df_post["owner.user_id"] == all_users["user_id"], how="left")
+# COMMAND ----------
 
-checkpoint_path = f"dbfs:/mnt/datakickstart/raw/checkpoints/stackoverflow_streaming_{GROUP_ID}"
-save_to_path = f"dbfs:/mnt/datakickstart/raw/stack_overflow_streaming/posts_{GROUP_ID}"
+df_combined = df_post.join(all_users, df_post["_OwnerUserId"] == all_users["user_id"], how="left")
 
-df.write.mode('append').format("delta").checkpoint()
+ckpt_path = f"dbfs:/mnt/datalake/raw/checkpoints/stackoverflow_streaming_{GROUP_ID}"
+dest_path = f"dbfs:/mnt/datalake/raw/stack_overflow_streaming/posts_{GROUP_ID}"
+
+log_informational_message("Starting stream for combined so posts to delta file.")
+
+df_combined.writeStream.format("delta").option("checkpointLocation",ckpt_path) \
+    .trigger(processingTime='30 seconds').outputMode("append") \
+    .start(dest_path)
 
 # COMMAND ----------
 
-# MAGIC %fs ls dbfs:/mnt/datakickstart/raw/
-
-# COMMAND ----------
-
+# q.processAllAvailable()
+# q.stop()
 stop_logging(job_name)

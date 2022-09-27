@@ -74,6 +74,10 @@ adls_mount(account_name="datakickstartadls", container="curated", mnt_pnt="/mnt/
 
 # COMMAND ----------
 
+adls_mount(account_name="dvtrainingadls", container="demo", mnt_pnt="/mnt/dvtraining/demo")
+
+# COMMAND ----------
+
 from datetime import datetime
 
 t = datetime.fromtimestamp(1657812704)
