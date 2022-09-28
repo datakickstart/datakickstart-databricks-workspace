@@ -38,10 +38,10 @@ def save_delta_table(df, table, partition_str=None):
         None
     """
     options = {"delta.enableChangeDataFeed": "true"}
+    writer_setup = df.write.mode("overwrite").options(**options)
     if partition_str:
-        df.write.mode("overwrite").options(**options).format("delta").saveAsTable(table)
-    else:
-        df.write.mode("overwrite").options(**options).format("delta").saveAsTable(table)
+        writer_setup = writer_setup.partitionBy(partition_str)
+    writer_setup.format("delta").saveAsTable(table)
 
 
 # COMMAND ----------
