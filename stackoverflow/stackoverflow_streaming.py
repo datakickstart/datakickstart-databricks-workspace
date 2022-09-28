@@ -9,7 +9,7 @@ job_name = 'stackoverflow_streaming'
 logger = start_logging(spark, job_name)
 
 topic = "stackoverflow-post"
-GROUP_ID = "so_v2"
+GROUP_ID = "so_v3"
 
 def get_confluent_config(topic):
     bootstrapServers = dbutils.secrets.get("demo", "confluent-cloud-brokers")
@@ -139,11 +139,18 @@ q = df_combined.writeStream.format("delta").option("checkpointLocation",ckpt_pat
     .trigger(processingTime='30 seconds').outputMode("append") \
     .start(dest_path)
 
-# q.awaitTermination()
-# q.processAllAvailable()
-# q.stop()
+
+# Comment out this to keep the streaming query running.
+# CAUTION: This cell could run forever and cost you money...make sure it is stopped when you are done!!
+q.processAllAvailable()
+q.stop()
 
 # COMMAND ----------
 
 test_df = spark.read.format("delta").load(dest_path)
 display(test_df)
+
+
+# COMMAND ----------
+
+
