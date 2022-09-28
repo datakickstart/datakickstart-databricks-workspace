@@ -11,22 +11,24 @@ display(so_posts)
 
 # COMMAND ----------
 
-# bootstrapServers = dbutils.secrets.get("demo", "confluent-cloud-brokers")
-# confluentApiKey =  dbutils.secrets.get("demo", "confluent-cloud-user")
-# confluentSecret =  dbutils.secrets.get("demo", "confluent-cloud-password")
-# confluentTopicName = "stackoverflow_post"
-
-# options = {
-#     "kafka.bootstrap.servers": bootstrapServers,
-#     "kafka.security.protocol": "SASL_SSL",
-#     "kafka.ssl.endpoint.identification.algorithm": "https",
-#     "kafka.sasl.jaas.config": "kafkashaded.org.apache.kafka.common.security.plain.PlainLoginModule required username='{}' password='{}';".format(confluentApiKey, confluentSecret),
-#     "kafka.sasl.mechanism": "PLAIN",
-#     "topic": confluentTopicName
-# }
-
 topic = "stackoverflow_post"
-GROUP_ID = "so_v1"
+GROUP_ID = "so_v2"
+
+def get_confluent_config(topic):
+    bootstrapServers = dbutils.secrets.get("demo", "confluent-cloud-brokers")
+    confluentApiKey =  dbutils.secrets.get("demo", "confluent-cloud-user")
+    confluentSecret =  dbutils.secrets.get("demo", "confluent-cloud-password")
+    confluentTopicName = "stackoverflow_post"
+
+    options = {
+        "kafka.bootstrap.servers": bootstrapServers,
+        "kafka.security.protocol": "SASL_SSL",
+        "kafka.ssl.endpoint.identification.algorithm": "https",
+        "kafka.sasl.jaas.config": "kafkashaded.org.apache.kafka.common.security.plain.PlainLoginModule required username='{}' password='{}';".format(confluentApiKey, confluentSecret),
+        "kafka.sasl.mechanism": "PLAIN",
+        "topic": confluentTopicName
+    }
+    return options
 
 def get_event_hub_config(topic):
     # Password is really a Event Hub connection string, for example ->
@@ -51,7 +53,7 @@ def get_event_hub_config(topic):
 # COMMAND ----------
 
 topic = 'stackoverflow-post'
-config = get_event_hub_config(topic)
+config = get_confluent_config(topic)
 
 min_dt = None
 

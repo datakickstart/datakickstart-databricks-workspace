@@ -1,4 +1,11 @@
 # Databricks notebook source
+from utils.logging_utils import *
+
+job_name = 'stackoverflow_db_ingest'
+logger = start_logging(spark, job_name)
+
+# COMMAND ----------
+
 # On Databricks, need to add library for com.microsoft.sqlserver.jdbc.spark and set secrets
 database = "StackOverflow2010"
 db_host_name = "sandbox-2-sqlserver.database.windows.net"
@@ -6,13 +13,16 @@ db_url = f"jdbc:sqlserver://{db_host_name};databaseName={database}"
 db_user = dbutils.secrets.get("demo", "sql-user-stackoverflow") # databricks
 db_password = dbutils.secrets.get("demo", "sql-pwd-stackoverflow") #databricks
 
+raw_path = 'dbfs:/mnt/datalake/raw/stackoverflow_sql/'
+raw_db = 'raw_stackoverflow_sql'
+
 # COMMAND ----------
 
-spark.sql(f"CREATE DATABASE IF NOT EXISTS raw_stackoverflow LOCATION '/demo/raw_stackoverflow'")
+spark.sql(f"CREATE DATABASE IF NOT EXISTS {raw_db} LOCATION '{raw_path}'")
 
 def load_table(table):
     print(table)
-    destination_table = "raw_stackoverflow." + table
+    destination_table = f"{raw_db}.{table}"
 
     df = (
         spark.read
@@ -25,6 +35,7 @@ def load_table(table):
     )
 
     df.write.format("parquet").mode("overwrite").saveAsTable(destination_table)
+    log_informational_message(f"Saved raw table {destination_table}")
 
 # COMMAND ----------
 
@@ -68,16 +79,13 @@ from queue import Queue
 
 q = Queue()
 
-worker_count = 2
+worker_count = 3
 
 def run_tasks(function, q):
     while not q.empty():
         value = q.get()
         function(value)
         q.task_done()
-
-
-print(table_list)
 
 for table in table_list:
     q.put(table)
@@ -89,3 +97,7 @@ for i in range(worker_count):
 
 q.join()
 
+
+# COMMAND ----------
+
+stop_logging(job_name)

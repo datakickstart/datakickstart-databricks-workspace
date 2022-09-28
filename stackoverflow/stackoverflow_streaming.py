@@ -9,7 +9,26 @@ job_name = 'stackoverflow_streaming'
 logger = start_logging(spark, job_name)
 
 topic = "stackoverflow-post"
-GROUP_ID = "so_v1"
+GROUP_ID = "so_v2"
+
+def get_confluent_config(topic):
+    bootstrapServers = dbutils.secrets.get("demo", "confluent-cloud-brokers")
+    confluentApiKey =  dbutils.secrets.get("demo", "confluent-cloud-user")
+    confluentSecret =  dbutils.secrets.get("demo", "confluent-cloud-password")
+    confluentTopicName = "stackoverflow_post"
+
+    options = {
+        "kafka.bootstrap.servers": bootstrapServers,
+        "kafka.security.protocol": "SASL_SSL",
+        "kafka.ssl.endpoint.identification.algorithm": "https",
+        "kafka.sasl.jaas.config": "kafkashaded.org.apache.kafka.common.security.plain.PlainLoginModule required username='{}' password='{}';".format(confluentApiKey, confluentSecret),
+        "kafka.sasl.mechanism": "PLAIN",
+        'kafka.group.id': GROUP_ID,
+        "startingOffsets": "earliest",
+        "failOnDataLoss": "false",
+        "subscribe": confluentTopicName
+    }
+    return options
 
 def get_event_hub_config(topic):
     # Password is really a Event Hub connection string, for example ->
@@ -64,7 +83,7 @@ post_schema = (
 # COMMAND ----------
 
 ##Create Spark Readstream
-config = get_event_hub_config(topic)
+config = get_confluent_config(topic)
 
 post_df = (
   spark
@@ -116,12 +135,15 @@ dest_path = f"dbfs:/mnt/datalake/raw/stack_overflow_streaming/posts_{GROUP_ID}"
 
 log_informational_message("Starting stream for combined so posts to delta file.")
 
-df_combined.writeStream.format("delta").option("checkpointLocation",ckpt_path) \
+q = df_combined.writeStream.format("delta").option("checkpointLocation",ckpt_path) \
     .trigger(processingTime='30 seconds').outputMode("append") \
     .start(dest_path)
 
-# COMMAND ----------
-
+# q.awaitTermination()
 # q.processAllAvailable()
 # q.stop()
-stop_logging(job_name)
+
+# COMMAND ----------
+
+test_df = spark.read.format("delta").load(dest_path)
+display(test_df)
