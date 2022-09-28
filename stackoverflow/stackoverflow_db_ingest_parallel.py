@@ -78,14 +78,20 @@ from threading import Thread
 from queue import Queue
 
 q = Queue()
-
 worker_count = 3
+errors = {}
 
 def run_tasks(function, q):
     while not q.empty():
         value = q.get()
-        function(value)
-        q.task_done()
+        try:
+            function(value)
+        except Exception as e:
+            errors[value] = e
+            msg = f"ERROR processing {value}: {str(e)}"
+            log_error_message(msg)
+        finally:
+            q.task_done()
 
 for table in table_list:
     q.put(table)
@@ -97,6 +103,11 @@ for i in range(worker_count):
 
 q.join()
 
+if len(errors) == 0:
+    log_informational_message("All tasks completed successfully.")
+elif len(errors) > 0:
+    msg = f"Errors during tasks {list(errors.keys())} -> \n {str(errors)}"
+    raise Exception(msg)
 
 # COMMAND ----------
 
