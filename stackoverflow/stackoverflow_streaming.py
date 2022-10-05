@@ -145,8 +145,8 @@ q = df_combined.writeStream.format("delta").option("checkpointLocation",ckpt_pat
 
 # Comment out this to keep the streaming query running.
 # CAUTION: This cell could run forever and cost you money...make sure it is stopped when you are done!!
-# q.processAllAvailable()
-# q.stop()
+q.processAllAvailable()
+q.stop()
 
 # COMMAND ----------
 
