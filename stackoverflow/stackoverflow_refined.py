@@ -5,12 +5,16 @@
 
 from pyspark.sql.functions import lit, col
 from datetime import datetime
+from utils.logging_utils import *
 
 load_time = datetime.now()
 raw_base_path = dbutils.secrets.get("demo", "raw-datalake-path") + "stackoverflow"
 refined_base_path = dbutils.secrets.get("demo", "refined-datalake-path") + "stackoverflow"
 raw_format = "delta"
 refined_format = "delta"
+job_name = "stackoverflow_refined"
+
+logger = start_logging(spark, job_name)
 
 adls_authenticate()
 
@@ -47,8 +51,8 @@ from threading import Thread
 from queue import Queue
 
 q = Queue()
-
-worker_count = 2
+worker_count = 3
+errors = {}
 
 def run_tasks(function, q):
     while not q.empty():
@@ -57,8 +61,9 @@ def run_tasks(function, q):
             function(value)
         except Exception as e:
             table = value.get("table", "UNKNOWN TABLE")
-            print(f"Error processing table {table}")
-            print(e)
+            msg = f"Error processing table {table}: {str(e)}"
+            errors[value] = e
+            log_error_message(msg)
         finally:
             q.task_done()
 
@@ -66,7 +71,12 @@ def run_tasks(function, q):
 table_list = [
     {"table": "badges_delta", "id_column": "id", 
      "columns": "_Class as class, _Date as event_date, _Id as id, _Name as name, _UserId as userid"
-    }]
+    },
+    {"table": "comments_delta", "id_column": "id", 
+     "columns": """_ContentLicense as content_license, _CreationDate as creation_date, _Id as id, 
+     _PostId as post_id, _Score as score, _Text as text, _UserDisplayName as user_display_name, _UserId as user_id"""
+    }
+]
 
 print(table_list)
 
@@ -79,6 +89,12 @@ for i in range(worker_count):
     t.start()
 
 q.join()
+
+if len(errors) == 0:
+    log_informational_message("All tasks completed successfully.")
+elif len(errors) > 0:
+    msg = f"Errors during tasks {list(errors.keys())} -> \n {str(errors)}"
+    raise Exception(msg)
 
 # COMMAND ----------
 
@@ -103,3 +119,7 @@ table = "badges_delta"
 refined_change_feed = spark.read.format("delta").option("readChangeData", True).option("startingVersion",0).load(f"{refined_base_path}/{table}")
 display(refined_change_feed)
 
+
+# COMMAND ----------
+
+stop_logging(job_name)
