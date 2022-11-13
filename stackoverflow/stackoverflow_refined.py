@@ -40,7 +40,7 @@ def create_database(db_name, path, drop=False):
 # COMMAND ----------
 
 def load_table(args):
-    status = dbutils.notebook.run("stackoverflow_refined_table_load", 60, arguments=args)
+    status = dbutils.notebook.run("stackoverflow_refined_table_load", 600, arguments=args)
     print(status)
     if status != 'success':
         raise Exception(f"Failed to load refined database. Status: {str(status)}")
@@ -70,11 +70,10 @@ def run_tasks(function, q):
 
 table_list = [
     {"table": "badges_delta", "id_column": "id", 
-     "columns": "_Class as class, _Date as event_date, _Id as id, _Name as name, _UserId as userid"
+     "columns": "_Class as class,_Date as event_date,_Id as id,_Name as name,_UserId as userid"
     },
     {"table": "comments_delta", "id_column": "id", 
-     "columns": """_ContentLicense as content_license, _CreationDate as creation_date, _Id as id, 
-     _PostId as post_id, _Score as score, _Text as text, _UserDisplayName as user_display_name, _UserId as user_id"""
+     "columns": "_ContentLicense as content_license,_CreationDate as creation_date,_Id as id,_PostId as post_id,_Score as score,_Text as text,_UserDisplayName as user_display_name,_UserId as user_id"
     }
 ]
 
