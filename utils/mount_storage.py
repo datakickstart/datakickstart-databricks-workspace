@@ -49,6 +49,8 @@ def adls_mount(account_name="dvtrainingadls", container="raw", mnt_pnt="/mnt/dat
   except Exception as e:
     if str(e).find("Directory already mounted") > -1:
         print(f"Skipping mount for {mnt_pnt}, mount already exists.")
+    else:
+        raise e
 
 # COMMAND ----------
 
