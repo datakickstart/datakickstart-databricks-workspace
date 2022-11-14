@@ -3,16 +3,27 @@
 
 # COMMAND ----------
 
+default_mounts()
+
+# COMMAND ----------
+
 from pyspark.sql.functions import lit, col
 from datetime import datetime
 
 load_time = datetime.now()
-raw_base_path = dbutils.secrets.get("demo", "raw-datalake-path") + "cu"
-refined_base_path = dbutils.secrets.get("demo", "refined-datalake-path") + "cu"
+raw_base_path = "/mnt/datalake/raw/cu"
+refined_base_path = "/mnt/datalake/refined/cu"
 raw_format = "parquet"
 refined_format = "delta"
 
-adls_authenticate()
+# COMMAND ----------
+
+raw_df = spark.read.format(refined_format).load(f"{refined_base_path}/stackoverflow/badges_delta")
+raw_df.show()
+
+# COMMAND ----------
+
+default_mounts()
 
 # COMMAND ----------
 
@@ -21,7 +32,7 @@ def create_database(db_name, path, drop=False):
         spark.sql(f"DROP DATABASE IF EXISTS {db_name} CASCADE;")    
     spark.sql(f"CREATE DATABASE IF NOT EXISTS {db_name} LOCATION '{path}'")
 
-create_database("refined", refined_base_path)
+create_database("refined", refined_base_path, drop=True)
 
 # COMMAND ----------
 
