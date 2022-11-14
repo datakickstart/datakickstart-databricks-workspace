@@ -73,7 +73,7 @@ id_list = id.split(',')
 if ',' in id:
     id_str = ' and '.join(f"t.{i} = s.{i}" for i in id_list)
 else:
-    id_str = id
+    id_str = f"t.{id} = s.{id}" #id
 
 # COMMAND ----------
 
