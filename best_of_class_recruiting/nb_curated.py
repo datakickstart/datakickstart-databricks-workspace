@@ -7,21 +7,23 @@ from pyspark.sql.functions import lit, col
 from datetime import datetime
 
 # load_time = datetime.now()
-refined_base_path = "/mnt/dlpssa/refined" #dbutils.secrets.get("demo", "refined-datalake-path") + "cu"
-curated_base_path = "/mnt/dlpssa/curated" #dbutils.secrets.get("demo", "refined-datalake-path") + "cu_curated"
+# raw_base_path = "/mnt/datalake/raw/cu"
+refined_base_path = "/mnt/datalake/refined/cu"
+curated_base_path = "/mnt/datalake/curated"
 refined_format = "delta"
 curated_format = "delta"
 curated_db = "curated"
 
-# adls_mount(account_name="dlpssa4dev04", container="raw", mnt_pnt="/mnt/dlpssa/raw")
-try:
-    adls_mount(account_name="dlpssa4dev04", container="refined", mnt_pnt="/mnt/dlpssa/refined")
-except Exception as e:
-    print("Refined container already mounted")
-try:
-    adls_mount(account_name="dlpssa4dev04", container="curated", mnt_pnt="/mnt/dlpssa/curated")
-except Exception as e:
-    print("Curated container already mounted")
+default_mounts()
+
+# COMMAND ----------
+
+def create_database(db_name, path, drop=False):
+    if drop:
+        spark.sql(f"DROP DATABASE IF EXISTS {db_name} CASCADE;")    
+    spark.sql(f"CREATE DATABASE IF NOT EXISTS {db_name} LOCATION '{path}'")
+
+create_database(curated_db, curated_base_path)
 
 # COMMAND ----------
 

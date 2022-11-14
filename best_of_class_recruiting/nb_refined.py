@@ -18,21 +18,12 @@ refined_format = "delta"
 
 # COMMAND ----------
 
-raw_df = spark.read.format(refined_format).load(f"{refined_base_path}/stackoverflow/badges_delta")
-raw_df.show()
-
-# COMMAND ----------
-
-default_mounts()
-
-# COMMAND ----------
-
 def create_database(db_name, path, drop=False):
     if drop:
         spark.sql(f"DROP DATABASE IF EXISTS {db_name} CASCADE;")    
     spark.sql(f"CREATE DATABASE IF NOT EXISTS {db_name} LOCATION '{path}'")
 
-create_database("refined", refined_base_path, drop=True)
+create_database("refined", refined_base_path)
 
 # COMMAND ----------
 
@@ -116,3 +107,7 @@ for i in range(worker_count):
     t.start()
 
 q.join()
+
+# COMMAND ----------
+
+

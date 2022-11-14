@@ -13,8 +13,8 @@ from pyspark.sql.functions import lit, col
 from datetime import datetime
 
 load_time = datetime.now()
-refined_base_path = "/mnt/dlpssa/refined" #dbutils.secrets.get("demo", "refined-datalake-path") + "cu"
-curated_base_path = "/mnt/dlpssa/curated" #dbutils.secrets.get("demo", "refined-datalake-path") + "cu_curated"
+refined_base_path = "/mnt/datalake/refined/cu"
+curated_base_path = "/mnt/datalake/curated"
 refined_format = "delta"
 curated_format = "delta"
 refined_db = 'refined'
@@ -67,8 +67,7 @@ try:
             .drop("_commit_version") \
             .drop("_change_type")
 
-    # surrogate_key = destination_table + '_id'
-    update_dct = {f"{c}": f"s.{c}" for c in refined_df.columns} #if c not in [id]
+    update_dct = {f"{c}": f"s.{c}" for c in refined_df.columns}
 
     delta_target.alias('t') \
     .merge(refined_df.alias('s'), f"t.{id} = s.{id}") \
@@ -76,7 +75,10 @@ try:
     .whenNotMatchedInsert(values=update_dct) \
     .execute()
 except AnalysisException as e:
-    if str(e).find('not a Delta table') > 0 or str(e).find('no viable alternative at input') > 0:
+    table_not_exist = (str(e).find('not a Delta table') > -1 
+        or str(e).find('no viable alternative at input') > -1)
+    
+    if table_not_exist:
         print("Table does not exist, need to create table first.")
         
         refined_df =spark.read.format("delta").option("readChangeFeed", "true") \

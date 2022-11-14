@@ -58,6 +58,9 @@ try:
     delta_target = DeltaTable.forName(spark, f"{refined_db}.{table}")
     df_target = delta_target.toDF().filter("is_deleted == False")
 except AnalysisException as e:
+    table_not_exist = (str(e).find('not a Delta table') > -1 
+        or str(e).find('no viable alternative at input') > -1)
+    
     if str(e).find('not a Delta table'):
         print("Table does not exist, need to create table first.")
         df_source.write.format("delta").saveAsTable(f"{refined_db}.{table}")
