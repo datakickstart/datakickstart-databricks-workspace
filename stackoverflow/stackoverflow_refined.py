@@ -40,7 +40,7 @@ def create_database(db_name, path, drop=False):
 # COMMAND ----------
 
 def load_table(args):
-    status = dbutils.notebook.run("stackoverflow_refined_table_load", 600, arguments=args)
+    status = dbutils.notebook.run("stackoverflow_refined_table_load", 1800, arguments=args)
     print(status)
     if status != 'success':
         raise Exception(f"Failed to load refined database. Status: {str(status)}")
@@ -111,12 +111,11 @@ elif len(errors) > 0:
 # COMMAND ----------
 
 # Example to read changes from refined before processing and loading to curated/certified zone\
-# Need to find the right version, to do this manually run:
-# display(delta_target.history())
+# To find the right version manually run: display(delta_target.history())
 
-table = "badges_delta"
-refined_change_feed = spark.read.format("delta").option("readChangeData", True).option("startingVersion",0).load(f"{refined_base_path}/{table}")
-display(refined_change_feed)
+# table = "badges_delta"
+# refined_change_feed = spark.read.format("delta").option("readChangeData", True).option("startingVersion",0).load(f"{refined_base_path}/{table}")
+# display(refined_change_feed)
 
 
 # COMMAND ----------

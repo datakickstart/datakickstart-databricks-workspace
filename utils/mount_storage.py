@@ -1,5 +1,5 @@
 # Databricks notebook source
-def adls_authenticate():
+def adls_authenticate(account_name="dvtrainingadls"):
   """
   Dependencies:`
     - Service principal is created and assigned permission
@@ -7,11 +7,10 @@ def adls_authenticate():
     - Key values are added to the secret scope so that references from dbutils.secrets.get work properly
   """
   secret_scope_name = "demo"
-  account_name = "dvtrainingadls"
-  client_id = dbutils.secrets.get(secret_scope_name, 'dvtrainingadls-client-id')
-  app_id = dbutils.secrets.get(secret_scope_name, 'dvtrainingadls-app-id')
-  directory_id = dbutils.secrets.get(secret_scope_name, 'dvtrainingadls-directory-id')
-  credential = dbutils.secrets.get(secret_scope_name, 'dvtrainingadls-credential')
+  client_id = dbutils.secrets.get(secret_scope_name, f'{account_name}-client-id')
+  app_id = dbutils.secrets.get(secret_scope_name, f'{account_name}-app-id')
+  directory_id = dbutils.secrets.get(secret_scope_name, f'{account_name}-directory-id')
+  credential = dbutils.secrets.get(secret_scope_name, f'{account_name}-credential')
   
   spark.conf.set("fs.azure.account.auth.type", "OAuth")
   spark.conf.set("fs.azure.account.oauth.provider.type", "org.apache.hadoop.fs.azurebfs.oauth2.ClientCredsTokenProvider")

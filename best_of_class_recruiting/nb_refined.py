@@ -8,7 +8,7 @@ from datetime import datetime
 
 load_time = datetime.now()
 raw_base_path = dbutils.secrets.get("demo", "raw-datalake-path") + "cu"
-refined_base_path = "/mnt/dlpssa/refined" #dbutils.secrets.get("demo", "refined-datalake-path") + "cu"
+refined_base_path = dbutils.secrets.get("demo", "refined-datalake-path") + "cu"
 raw_format = "parquet"
 refined_format = "delta"
 
@@ -16,12 +16,12 @@ adls_authenticate()
 
 # COMMAND ----------
 
-# def create_database(db_name, path, drop=False):
-#     if drop:
-#         spark.sql(f"DROP DATABASE IF EXISTS {db_name} CASCADE;")    
-#     spark.sql(f"CREATE DATABASE IF NOT EXISTS {db_name} LOCATION '{path}'")
+def create_database(db_name, path, drop=False):
+    if drop:
+        spark.sql(f"DROP DATABASE IF EXISTS {db_name} CASCADE;")    
+    spark.sql(f"CREATE DATABASE IF NOT EXISTS {db_name} LOCATION '{path}'")
 
-# create_database("refined", refined_base_path)
+create_database("refined", refined_base_path)
 
 # COMMAND ----------
 
@@ -50,15 +50,6 @@ adls_authenticate()
 
 # COMMAND ----------
 
-
-def load_table(args):
-    status = dbutils.notebook.run("nb_refined_table_load", 60, arguments=args)
-    print(status)
-    if status != 'success':
-        raise Exception(f"Failed to load refined database. Status: {str(status)}")
-
-# status = dbutils.notebook.run("nb_refined_table_load", 60, arguments={"table": "area", "id_column": "area_code", "columns": "area_code,area_name,display_level" })
-
 table_list = [
     {"table": "area", "id_column": "area_code", "columns": "area_code,area_name,display_level"},
     {"table": "series", "id_column": "series_id", 
@@ -69,12 +60,26 @@ table_list = [
 
 # COMMAND ----------
 
+
+def load_table(args):
+    """Run notebook that loads up a refined table.
+    
+    Example args:
+        {"table": "area", "id_column": "area_code", "columns": "area_code,area_name,display_level"}
+    """
+    status = dbutils.notebook.run("nb_refined_table_load", 60, arguments=args)
+    print(status)
+    if status != 'success':
+        raise Exception(f"Failed to load refined database. Status: {str(status)}")
+
+# COMMAND ----------
+
 from threading import Thread
 from queue import Queue
 
 q = Queue()
 
-worker_count = 2
+worker_count = 4
 
 def run_tasks(function, q):
     while not q.empty():
