@@ -48,7 +48,7 @@ from queue import Queue
 
 q = Queue()
 
-worker_count = 2
+worker_count = 3
 
 def run_tasks(function, q):
     while not q.empty():

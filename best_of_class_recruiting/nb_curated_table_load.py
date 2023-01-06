@@ -50,6 +50,19 @@ destination_table = dbutils.widgets.get("destination_table")
 
 # COMMAND ----------
 
+delta_target = DeltaTable.forName(spark, f"{curated_db}.{destination_table}")
+
+min_date = datetime(2022,1,1)
+last_updated = spark.sql(f"select max(last_modified) last_modified from {curated_db}.{destination_table}").first().last_modified
+last_updated = (last_updated or min_date) # + timedelta(hours=0, minutes=0, seconds=1)
+
+refined_df =spark.read.format("delta").option("readChangeFeed", "true") \
+        .option("startingTimestamp", last_updated) \
+        .load(f"{refined_base_path}/{table}")
+display(refined_df.filter(col("_change_type") == "insert"))
+
+# COMMAND ----------
+
 from pyspark.sql.utils import AnalysisException
 from delta.tables import *
 
