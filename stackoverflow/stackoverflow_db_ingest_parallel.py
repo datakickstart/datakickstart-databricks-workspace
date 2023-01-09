@@ -109,6 +109,7 @@ elif len(errors) > 0:
     msg = f"Errors during tasks {list(errors.keys())} -> \n {str(errors)}"
     raise Exception(msg)
 
+
 # COMMAND ----------
 
 stop_logging(job_name)

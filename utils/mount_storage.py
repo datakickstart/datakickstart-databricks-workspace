@@ -1,5 +1,5 @@
 # Databricks notebook source
-def adls_authenticate():
+def adls_authenticate(account_name="dvtrainingadls"):
   """
   Dependencies:`
     - Service principal is created and assigned permission
@@ -7,11 +7,10 @@ def adls_authenticate():
     - Key values are added to the secret scope so that references from dbutils.secrets.get work properly
   """
   secret_scope_name = "demo"
-  account_name = "dvtrainingadls"
-  client_id = dbutils.secrets.get(secret_scope_name, 'dvtrainingadls-client-id')
-  app_id = dbutils.secrets.get(secret_scope_name, 'dvtrainingadls-app-id')
-  directory_id = dbutils.secrets.get(secret_scope_name, 'dvtrainingadls-directory-id')
-  credential = dbutils.secrets.get(secret_scope_name, 'dvtrainingadls-credential')
+  client_id = dbutils.secrets.get(secret_scope_name, f'{account_name}-client-id')
+  app_id = dbutils.secrets.get(secret_scope_name, f'{account_name}-app-id')
+  directory_id = dbutils.secrets.get(secret_scope_name, f'{account_name}-directory-id')
+  credential = dbutils.secrets.get(secret_scope_name, f'{account_name}-credential')
   
   spark.conf.set("fs.azure.account.auth.type", "OAuth")
   spark.conf.set("fs.azure.account.oauth.provider.type", "org.apache.hadoop.fs.azurebfs.oauth2.ClientCredsTokenProvider")
@@ -41,12 +40,17 @@ def adls_mount(account_name="dvtrainingadls", container="raw", mnt_pnt="/mnt/dat
            "fs.azure.account.oauth2.client.endpoint": "https://login.microsoftonline.com/{0}/oauth2/token".format(directory_id)}
 
   # Optionally, you can add <directory-name> to the source URI of your mount point.
-  dbutils.fs.mount(
-    source = f"abfss://{container}@{account_name}.dfs.core.windows.net/",
-    mount_point = mnt_pnt,
-    extra_configs = configs
-  )
-  
+  try:
+      dbutils.fs.mount(
+        source = f"abfss://{container}@{account_name}.dfs.core.windows.net/",
+        mount_point = mnt_pnt,
+        extra_configs = configs
+      )
+  except Exception as e:
+    if str(e).find("Directory already mounted") > -1:
+        print(f"Skipping mount for {mnt_pnt}, mount already exists.")
+    else:
+        raise e
 
 # COMMAND ----------
 

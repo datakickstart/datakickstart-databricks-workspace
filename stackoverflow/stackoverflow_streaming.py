@@ -9,7 +9,7 @@ job_name = 'stackoverflow_streaming'
 logger = start_logging(spark, job_name)
 
 topic = "stackoverflow-post"
-GROUP_ID = "so_v6"
+GROUP_ID = "so_v2"
 
 def get_confluent_config(topic):
     bootstrapServers = dbutils.secrets.get("demo", "confluent-cloud-brokers")
@@ -24,7 +24,7 @@ def get_confluent_config(topic):
         "kafka.sasl.jaas.config": "kafkashaded.org.apache.kafka.common.security.plain.PlainLoginModule required username='{}' password='{}';".format(confluentApiKey, confluentSecret),
         "kafka.sasl.mechanism": "PLAIN",
         'kafka.group.id': GROUP_ID,
-        "startingOffsets": "latest",
+        "startingOffsets": "earliest",
         "failOnDataLoss": "false",
         "subscribe": confluentTopicName
     }
@@ -73,6 +73,11 @@ post_schema = (
     .add('_AnswerCount','long')
     .add('_Body','string')
     .add('_ClosedDate','timestamp')
+    .add('_CommentCount','long')
+    .add('_CommunityOwnedDate','timestamp')
+    .add('_ContentLicense','string')
+    .add('_CreationDate','timestamp')
+    .add('_FavoriteCount','long')
 )
 
 # COMMAND ----------
@@ -105,27 +110,19 @@ df_post = df_parsed.selectExpr("json.*")
 
 # COMMAND ----------
 
-new_users = (
-    spark.read.format("delta")
-     .load("dbfs:/mnt/datakickstart/refined/stackoverflow_new_users")
-     .select(
-        "user_id",
-        "account_id",
-        "display_name",
-        "website_url"
-    )
+new_users = spark.read.format("delta").load("dbfs:/mnt/datakickstart/refined/stackoverflow_new_users").select(
+    "user_id",
+    "account_id",
+    "display_name",
+    "website_url"
 )
 
-old_users = (
-    spark.read
-    .parquet("dbfs:/mnt/datalake/raw/stackoverflow/users")
-    .selectExpr(
-        "_ID as user_id",
-        "_AccountId as account_id",
-        "_DisplayName as display_name",
-        "_WebsiteUrl as website_url"
+old_users = spark.read.parquet("dbfs:/mnt/datalake/raw/stackoverflow/users").selectExpr(
+    "_ID as user_id",
+    "_AccountId as account_id",
+    "_DisplayName as display_name",
+    "_WebsiteUrl as website_url"
     )
-)
 
 all_users = old_users.union(new_users)
 
@@ -142,18 +139,11 @@ q = df_combined.writeStream.format("delta").option("checkpointLocation",ckpt_pat
     .trigger(processingTime='30 seconds').outputMode("append") \
     .start(dest_path)
 
-
-# Comment out this to keep the streaming query running.
-# CAUTION: This cell could run forever and cost you money...make sure it is stopped when you are done!!
-q.processAllAvailable()
-q.stop()
+# q.awaitTermination()
+# q.processAllAvailable()
+# q.stop()
 
 # COMMAND ----------
 
 test_df = spark.read.format("delta").load(dest_path)
 display(test_df)
-
-
-# COMMAND ----------
-
-

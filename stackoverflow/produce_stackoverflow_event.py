@@ -1,18 +1,18 @@
 # Databricks notebook source
-from pyspark.sql.functions import col, lit
+from pyspark.sql.functions import col
 
 so_posts = spark.read.parquet("dbfs:/mnt/dvtraining/demo/stackoverflow/posts/CreationMonth=2022-06-01")
 
 # COMMAND ----------
 
-so_posts = so_posts.sort(col("_Id").desc())
+so_posts = so_posts.sort(col("_CreationDate").asc())
 display(so_posts)
 
 
 # COMMAND ----------
 
 topic = "stackoverflow_post"
-GROUP_ID = "so_v6"
+GROUP_ID = "so_v2"
 
 def get_confluent_config(topic):
     bootstrapServers = dbutils.secrets.get("demo", "confluent-cloud-brokers")
@@ -55,16 +55,14 @@ def get_event_hub_config(topic):
 topic = 'stackoverflow-post'
 config = get_confluent_config(topic)
 
-min_id = None
+min_dt = None
 
-for i in range(100):
-    if min_id:
-        print(min_id)
-        df = so_posts.where((col("_Id")< lit(min_id))).limit(10)
-        df.show()
+for i in range(20):
+    if min_dt:
+        df = so_posts.where(col("_CreationDate")< min_dt).limit(10)
     else:
         df = so_posts.limit(10)
-    min_id = df.selectExpr("min(_Id) as minId").first().minId
+    min_dt = df.selectExpr("min(_CreationDate) as minCreationDate").first().minCreationDate
     df.selectExpr("cast(_Id as String) as key", "to_json(struct(*)) as value").write.format("kafka").options(**config).save()
 
 

@@ -57,7 +57,7 @@ try:
     delta_target = DeltaTable.forPath(spark, f"{refined_base_path}/{table}")
     df_target = delta_target.toDF()
 except AnalysisException as e:
-    if str(e).find(f"is not a Delta table") > 0:
+    if str(e).find(f"Path does not exist") > -1 or str(e).find(f"is not a Delta table") > -1:
         print(f"Delta table {table} doesn't exist yet, creating table and exiting notebook early.")
         df_source.write.format("delta").save(f"{refined_base_path}/{table}")
         dbutils.notebook.exit("success")
