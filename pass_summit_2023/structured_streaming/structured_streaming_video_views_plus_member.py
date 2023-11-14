@@ -81,6 +81,11 @@
 # MAGIC import org.apache.spark.sql.{DataFrame, SparkSession}
 # MAGIC
 # MAGIC   val mode = "confluent" //sys.env("KAFKA_PRODUCER_MODE")
+# MAGIC   val checkpointPath = "dbfs:/tmp/checkpoints/ss_video_view_v1"
+# MAGIC   val refreshAll = false
+# MAGIC
+# MAGIC   if (refreshAll) {dbutils.fs.rm(checkpointPath, recurse=true)}
+# MAGIC
 # MAGIC
 # MAGIC   val bootstrapServers = dbutils.secrets.get(scope = "demo", key = "confluent-cloud-brokers") // sys.env("KAFKA_BROKERS")
 # MAGIC   val kafkaAPIKey = dbutils.secrets.get(scope = "demo", key = "confluent-cloud-user") //sys.env("KAFKA_API_KEY")
@@ -97,7 +102,6 @@
 # MAGIC
 # MAGIC   val sparkConf = new SparkConf()
 # MAGIC     .set("spark.sql.streaming.metricsEnabled", "true")
-# MAGIC     // .set("spark.sql.streaming.checkpointLocation", "checkpoints/v3")
 # MAGIC     .set("spark.sql.shuffle.partitions", "16")
 # MAGIC     .set("spark.sql.legacy.timeParserPolicy", "LEGACY")
 # MAGIC .set("spark.sql.streaming.stateStore.providerClass", "com.databricks.sql.streaming.state.RocksDBStateStoreProvider")
@@ -115,8 +119,6 @@
 # MAGIC
 # MAGIC   import spark.implicits._
 # MAGIC
-# MAGIC   val memberPath = "dbfs:/tmp/tables/member" //"/opt/data/tables/member"
-# MAGIC   // val usageTopic = "video_usage"
 # MAGIC   val usageTopic = "usage"
 # MAGIC   val membershipTopic = "membership"
 # MAGIC
@@ -142,7 +144,7 @@
 # MAGIC     .format("kafka")
 # MAGIC     .options(kafkaOptions)
 # MAGIC     .option("subscribe", usageTopic)
-# MAGIC     .option("startingOffsets", "latest")
+# MAGIC     .option("startingOffsets", "earliest")
 # MAGIC     .load()
 # MAGIC
 # MAGIC   // val membershipLookup = spark.read
@@ -153,7 +155,7 @@
 # MAGIC     .format("kafka")
 # MAGIC     .options(kafkaOptions)
 # MAGIC     .option("subscribe", membershipTopic)
-# MAGIC     .option("startingOffsets", "latest")
+# MAGIC     .option("startingOffsets", "earliest")
 # MAGIC     .load()
 # MAGIC
 # MAGIC   val memberStream = memberStreamRaw.select(from_json(col("value").cast(StringType), membershipSchema).as("value_json"))
@@ -184,12 +186,13 @@
 # MAGIC     .format("kafka")
 # MAGIC     .options(kafkaOptions)
 # MAGIC     .option("topic", "member_video_views")
-# MAGIC     .option("checkpointLocation", "dbfs:/tmp/checkpoints/usageCoreStreamClipView_v3")
+# MAGIC     .option("checkpointLocation", checkpointPath)
 # MAGIC     .option("numStateStoreInstances", 16)
-# MAGIC     .trigger(Trigger.ProcessingTime("20 seconds"))
+# MAGIC     // .trigger(Trigger.ProcessingTime("20 seconds"))
+# MAGIC     .trigger(Trigger.AvailableNow)
 # MAGIC     .start
 # MAGIC
-# MAGIC   // streamingQuery.awaitTermination()
+# MAGIC   // streamingQuery.awaitTermination() // used if trigger is set to a time interval instead of AvailableNow
 # MAGIC
 
 # COMMAND ----------

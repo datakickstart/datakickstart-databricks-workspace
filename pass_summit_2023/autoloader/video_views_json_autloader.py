@@ -1,4 +1,10 @@
 # Databricks notebook source
+# MAGIC %md
+# MAGIC ## Setup logic
+# MAGIC Set many variables so its easy to change table names and checkpoint names later.
+
+# COMMAND ----------
+
 from pyspark.sql.functions import *
 from pyspark.sql import Window
 from delta.tables import *
@@ -18,13 +24,14 @@ silver_member_table = "main.default.member_silver"
 silver_video_full_table = "main.default.video_view_full_silver"
 gold_member_agg = "main.default.member_totals"
 
-refresh_all = True
-
+refresh_all = False
 
 # COMMAND ----------
 
-# MAGIC %sql
-# MAGIC -- DROP TABLE main.default.video_view_bronze
+# MAGIC %md
+# MAGIC ### Clear tables and restart
+# MAGIC If `refresh_all = True` then clear everything and start over.
+# MAGIC Note: If using Delta Live Tables, this is a simple call and doesn't require extra code like shown here. 
 
 # COMMAND ----------
 
@@ -34,36 +41,55 @@ if refresh_all:
     dbutils.fs.rm(checkpoint_path_member, recurse=True)
     dbutils.fs.rm(checkpoint_path_member_silver, recurse=True)
     dbutils.fs.rm(checkpoint_path_member_gold, recurse=True)
+    spark.sql(f"DROP TABLE {bronze_video_table};")
+    spark.sql(f"DROP TABLE {bronze_member_table};")
+    spark.sql(f"DROP TABLE {silver_video_table};")
+    spark.sql(f"DROP TABLE {silver_member_table};")
+    spark.sql(f"DROP TABLE {silver_video_full_table};")
+    # spark.sql(f"DROP TABLE {gold_member_agg};")
 
 # COMMAND ----------
 
-(spark.readStream.format("cloudFiles")
+# MAGIC %md
+# MAGIC ## Read incremental using Autoloader
+# MAGIC Trigger `availableNow=True` means it will get only new data from the stream. Autoloader takes care of tracking which files have not been processed yet. Several additional options are available to customize how autoloader works.
+
+# COMMAND ----------
+
+ q1 = (spark.readStream
+  .format("cloudFiles")
   .option("cloudFiles.format", "json")
   # The schema location directory keeps track of your data schema over time
   .option("cloudFiles.schemaLocation", checkpoint_path1)
   .load(source_path)
   .writeStream
+  .queryName("bronze_video")
   .option("checkpointLocation", checkpoint_path1)
   .trigger(availableNow=True)
   .toTable(bronze_video_table)
 )
 
+q1.processAllAvailable()
+
 # COMMAND ----------
 
-(spark.readStream.format("cloudFiles")
+q2 = (spark.readStream.format("cloudFiles")
   .option("cloudFiles.format", "json")
   # The schema location directory keeps track of your data schema over time
   .option("cloudFiles.schemaLocation", checkpoint_path_member)
   .load(source_path_member)
   .writeStream
+  .queryName("bronze_member")
   .option("checkpointLocation", checkpoint_path_member)
   .trigger(availableNow=True)
   .toTable(bronze_member_table)
 )
 
+q2.processAllAvailable()
+
 # COMMAND ----------
 
-(spark.readStream
+q3 = (spark.readStream
   .table(bronze_video_table)
   .selectExpr(
     "cast(usageId as int) as usageId",
@@ -75,10 +101,13 @@ if refresh_all:
     "cast(timestamp as timestamp) as receivedTimestamp"
   )
   .writeStream
+  .queryName("silver_video")
   .option("checkpointLocation", checkpoint_path2)
   .trigger(availableNow=True)
   .toTable(silver_video_table)
 )
+
+q3.processAllAvailable()
 
 
 # COMMAND ----------
@@ -112,7 +141,7 @@ def silver_merge(df, batchId):
         # TODO: Add condition to Matched statement to check offset since order not guaranteed throughout all steps
         session.sql(merge_sql)
     except Exception as e:
-        print(e)
+        print("Table doesn't exist, creating table before merge.")
         schema = df.schema.fields
         schema_string = ', '.join([c.name + ' ' + c.dataType.typeName() for c in schema])
 
@@ -130,39 +159,40 @@ def silver_merge(df, batchId):
         session.sql(merge_sql)
         
 
-(spark.readStream
+q4 = (spark.readStream
   .table(bronze_member_table)
   .writeStream
+  .queryName("silver_member")
   .option("checkpointLocation", checkpoint_path_member_silver)
   .trigger(availableNow=True)
   .foreachBatch(silver_merge)
   .start()
 )
 
-# COMMAND ----------
-
-
+q4.processAllAvailable()
 
 # COMMAND ----------
 
 # DBTITLE 1,Streaming join - Video view to latest member
-member_df = (spark.readStream.table(silver_member_table)
-            .withColumn("eventTimestamp", col("eventTimestamp").cast("timestamp"))
-             .withWatermark("eventTimestamp", '3 minutes')
-            )
+# member_df = (spark.readStream.table(silver_member_table)
+#             .withColumn("eventTimestamp", col("eventTimestamp").cast("timestamp"))
+#              .withWatermark("eventTimestamp", '3 minutes')
+#             )
 
-silver_df = (spark.readStream
-  .table(bronze_video_table)
-  .withColumn("eventTimestamp", col("eventTimestamp").cast("timestamp"))
-  .withWatermark("eventTimestamp", "3 minutes").alias("v")
-  .join(member_df.alias("m"), expr("m.user ==v.user and m.eventTimestamp between v.eventTimestamp and v.eventTimestamp + interval 5 minutes"), how="left")
-  .selectExpr("v.*", "m.membershipId", "m.planId", "m.offset as membershipOffset")
-  .writeStream
-  .option("checkpointLocation", checkpoint_path2)
-  .trigger(availableNow=True)
-  .toTable(silver_video_full_table)
-)
+# q5 = (spark.readStream
+#   .table(bronze_video_table)
+#   .withColumn("eventTimestamp", col("eventTimestamp").cast("timestamp"))
+#   .withWatermark("eventTimestamp", "3 minutes").alias("v")
+#   .join(member_df.alias("m"), expr("m.user ==v.user and m.eventTimestamp between v.eventTimestamp and v.eventTimestamp + interval 5 minutes"), how="left")
+#   .selectExpr("v.*", "m.membershipId", "m.planId", "m.offset as membershipOffset")
+#   .writeStream
+#   .queryName("silver_video_full")
+#   .option("checkpointLocation", checkpoint_path2)
+#   .trigger(availableNow=True)
+#   .toTable(silver_video_full_table)
+# )
 
+# q5.processAllAvailable()
 
 # COMMAND ----------
 
@@ -198,16 +228,19 @@ def member_view_agg(df, batchId):
         WHEN NOT MATCHED THEN INSERT *            
     """)
 
-(spark.readStream
+q6 = (spark.readStream
   .option("readChangeFeed", "true")
   .option("schemaTrackingLocation", checkpoint_path_member_gold)
   .table(silver_member_table)
   .writeStream
+  .queryName("gold_member_agg")
   .option("checkpointLocation", checkpoint_path_member_gold)
   .trigger(availableNow=True)
   .foreachBatch(member_view_agg)
   .start()
 )
+
+q6.processAllAvailable()
 
 
 # COMMAND ----------
@@ -240,21 +273,16 @@ def silver_merge_pyspark(df, batch_id):
             raise e
     
 
-df = spark.read.table(bronze_member_table).limit(1000)
+# df = spark.read.table(bronze_member_table).limit(1000)
+# silver_merge_pyspark(df, 0)
 
-silver_merge_pyspark(df, 0)
-
-# (spark.readStream
-#   .table(bronze_member_table)
-#   .writeStream
-#   .option("checkpointLocation", checkpoint_path_member_silver)
-#   .trigger(availableNow=True)
-#   .foreachBatch(silver_merge)
-# )
-
-# COMMAND ----------
-
-
+(spark.readStream
+  .table(bronze_member_table)
+  .writeStream
+  .option("checkpointLocation", checkpoint_path_member_silver+"2")
+  .trigger(availableNow=True)
+  .foreachBatch(silver_merge_pyspark)
+)
 
 # COMMAND ----------
 

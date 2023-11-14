@@ -13,11 +13,11 @@
 
 // COMMAND ----------
 
-// MAGIC %python
-// MAGIC logger = spark._jvm.org.apache.log4j
-// MAGIC log = logger.LogManager.getLogger("myLogger")
-// MAGIC
-// MAGIC log.info("Starting streaming job")
+// %python
+// logger = spark._jvm.org.apache.log4j
+// log = logger.LogManager.getLogger("myLogger")
+
+// log.info("Starting streaming job")
 
 // COMMAND ----------
 
@@ -57,9 +57,7 @@ import org.apache.spark.sql.{DataFrame, SparkSession}
 // //.set("spark.sql.streaming.stateStore.rocksdb.changelogCheckpointing.enabled", "true" )
 // // .set("spark.sql.streaming.stateStore.stateSchemaCheck", "false")
 
-  val sparkBase = SparkSession.builder
-    .appName("Structured Streaming Video Views Multicast")
-    .config(sparkConf)
+  val sparkBase = SparkSession.builder.appName("Structured Streaming Video Views Multicast").config(sparkConf)
 
   val spark =  if (mode == "local") sparkBase.master("local").getOrCreate() else sparkBase.getOrCreate()
 
