@@ -70,14 +70,13 @@ def writeUsageAndMembershipToKafka(): Unit = {
   val randomDuration= () => { Random.nextInt(360) }
   val timestamp = () => Timestamp.from(Instant.now)
   val startInstant = Instant.now
-  
-  val start = 20001
+
   val numRecords = 10000
   val sleepMilliseconds = 500
   val pauseThreshold = 1  // at which record should pause start being enforced, 0 means all records
 
   try {
-    for (i <- start to (start + numRecords)) {
+    for (i <- 0 to numRecords) {
       val usageInfo = s"""{"usageId": $i, "user": "user${randomUser()}", "completed": ${randomPass()}, "durationSeconds": ${randomDuration()}, "eventTimestamp": "${timestamp()}"}"""
       val record1 = new ProducerRecord[String, String](usageTopic, i.toString, usageInfo)
       println(usageInfo)

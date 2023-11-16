@@ -13,14 +13,6 @@
 
 // COMMAND ----------
 
-// %python
-// logger = spark._jvm.org.apache.log4j
-// log = logger.LogManager.getLogger("myLogger")
-
-// log.info("Starting streaming job")
-
-// COMMAND ----------
-
 import org.apache.spark.SparkConf
 import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.SaveMode
